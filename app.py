@@ -4,6 +4,7 @@ import random
 import urllib.parse
 import urllib.request
 import json
+import re
 
 # --- PAGE CONFIG ---
 st.set_page_config(
@@ -13,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- REPUTATION TRACK 5S & SEED DATA ---
+# --- SEED DATA ---
 TRACK_5_SONGS = [
     ("Cold as You", "Taylor Swift"),
     ("White Horse", "Fearless"),
@@ -271,7 +272,7 @@ EGGS = [
 ]
 
 
-# --- LOAD SONGS ---
+# --- LOAD CSV ---
 @st.cache_data
 def load_songs():
     try:
@@ -285,26 +286,42 @@ songs_df = load_songs()
 all_albums = list(songs_df['Album'].unique())
 
 
-# --- AUDIO PREVIEW VIA ITUNES SEARCH API ---
+# --- WORKING AUDIO PREVIEW VIA ITUNES ---
 @st.cache_data(show_spinner=False)
 def fetch_song_preview(song_title):
     try:
-        query = urllib.parse.quote(f"Taylor Swift {song_title}")
-        url = f"https://itunes.apple.com/search?term={query}&entity=song&limit=1"
+        clean_title = re.sub(r"\(.*?\)|\[.*?\]", "", song_title).strip()
+        query = urllib.parse.quote(f"Taylor Swift {clean_title}")
+        url = f"https://itunes.apple.com/search?term={query}&entity=song&limit=5"
         req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
         with urllib.request.urlopen(req, timeout=3) as resp:
             data = json.loads(resp.read().decode())
-            if data['resultCount'] > 0:
-                return data['results'][0].get('previewUrl')
+            results = data.get('results', [])
+            for item in results:
+                if "taylor swift" in item.get('artistName', '').lower():
+                    return item.get('previewUrl')
+            if results:
+                return results[0].get('previewUrl')
     except Exception:
         pass
     return None
 
 
-# --- INITIALIZE SESSION STATE ---
+# --- RELIABLE AUDIO SFX ---
+def play_sound(sound_type="click"):
+    url = "https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3" if sound_type == "click" else "https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3"
+    st.markdown(f"""
+        <audio autoplay style="display:none;">
+            <source src="{url}" type="audio/mp3">
+        </audio>
+    """, unsafe_allow_html=True)
+
+
+# --- SESSION STATE ---
 if "phase" not in st.session_state:
-    st.session_state.phase = "START_HUB"
-    st.session_state.game_mode = "FULL"  # "FULL", "SPEED", "TRACK5"
+    st.session_state.phase = "GATE_NAME"  # GATE_NAME -> START_HUB -> SELECT_ALBUM / BRACKET -> RESULTS
+    st.session_state.user_name = ""
+    st.session_state.game_mode = "FULL"
     st.session_state.album_ratings = {}
     st.session_state.all_song_ratings = {}
     st.session_state.album_winners = []
@@ -327,28 +344,7 @@ def get_current_theme():
 theme = get_current_theme()
 
 
-# --- AUDIO AND CSS STYLING ---
-def play_sound(sound_type="click"):
-    freq = 520 if sound_type == "click" else 784
-    st.components.v1.html(f"""
-        <script>
-            try {{
-                const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime({freq}, ctx.currentTime);
-                gain.gain.setValueAtTime(0.08, ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.18);
-                osc.connect(gain);
-                gain.connect(ctx.destination);
-                osc.start();
-                osc.stop(ctx.currentTime + 0.18);
-            }} catch(e) {{}}
-        </script>
-    """, height=0, width=0)
-
-
+# --- BRACELET RENDERER ---
 def render_friendship_bracelet(song_title, album_name=None):
     clean_title = "".join([c for c in song_title.upper() if c.isalnum() or c == " "])[:18]
     words = clean_title.split()
@@ -382,6 +378,7 @@ def render_friendship_bracelet(song_title, album_name=None):
     """
 
 
+# --- CSS INJECTION ---
 st.markdown(f"""
     <style>
         .stApp {{
@@ -392,7 +389,6 @@ st.markdown(f"""
             transition: background 0.7s ease;
         }}
 
-        /* Synced LED Stadium Wristband */
         .wristband-bar {{
             width: 100%;
             height: 12px;
@@ -409,7 +405,7 @@ st.markdown(f"""
 
         .era-hero {{
             position: relative;
-            background: linear-gradient(135deg, #ffffff 0%, rgba(255, 255, 255, 0.88) 100%);
+            background: linear-gradient(135deg, #ffffff 0%, rgba(255, 255, 255, 0.9) 100%);
             border: 2px solid {theme['accent']};
             box-shadow: 0 14px 40px {theme['shadow']};
             border-radius: 20px;
@@ -449,16 +445,6 @@ st.markdown(f"""
             margin-bottom: 20px;
         }}
 
-        .lyric-card {{
-            background: #ffffff;
-            border-left: 5px solid {theme['accent']};
-            border-radius: 12px;
-            padding: 14px 18px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 14px {theme['shadow']};
-        }}
-
-        /* VIP Concert Ticket & Receipt Styling */
         .vip-ticket {{
             background: #ffffff;
             border: 3px dashed {theme['accent']};
@@ -470,7 +456,6 @@ st.markdown(f"""
             font-family: 'Courier New', Courier, monospace;
         }}
 
-        /* Bracelet */
         .bracelet-container {{
             position: relative;
             padding: 28px 0;
@@ -559,55 +544,101 @@ def trigger_random_easter_egg():
 
 
 # ==============================================================================
-# SCREEN 1: START HUB & GAME MODES
+# SCREEN 0: NAME GATE & VIP TICKET GENERATION
 # ==============================================================================
-if st.session_state.phase == "START_HUB":
+if st.session_state.phase == "GATE_NAME":
+    st.markdown(f"""
+        <div class="era-hero">
+            <div class="hero-icon">🎟️</div>
+            <div>
+                <div class="era-badge">TOUR ADMISSION CHECK-IN</div>
+                <h1 style="margin: 0; font-size: 2.3rem; color: {theme['text_color']};">The Eras Tour Bracket Arena</h1>
+                <p style="margin: 4px 0 0 0; font-size: 1rem; opacity: 0.85;">Enter your name to unlock your personalized VIP admission pass.</p>
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
+
+    col_in, col_card = st.columns([1, 1])
+
+    with col_in:
+        st.markdown('<div class="era-card">', unsafe_allow_html=True)
+        st.subheader("VIP Registration")
+        name_input = st.text_input("Attendee Name / Swiftie Handle:", placeholder="e.g., Clara Bow")
+
+        if st.button("Generate VIP Pass ✨", use_container_width=True):
+            if name_input.strip():
+                play_sound("fanfare")
+                st.session_state.user_name = name_input.strip()
+                st.session_state.phase = "START_HUB"
+                st.rerun()
+            else:
+                st.warning("Please enter a name to claim your ticket!")
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    with col_card:
+        preview_name = name_input.strip().upper() if name_input.strip() else "YOUR NAME HERE"
+        st.markdown(f"""
+            <div class="vip-ticket" style="margin-top: 5px;">
+                <div style="font-size: 1.1rem; font-weight: bold; letter-spacing: 2px;">*** THE ERAS TOUR ***</div>
+                <div style="font-size: 0.75rem; color: #71717a;">OFFICIAL VIP ADMISSION PASS</div>
+                <hr style="border: 1px dashed #d4d4d8; margin: 12px 0;">
+                <div style="font-size: 1.3rem; font-weight: 800; color: {theme['accent']};">{preview_name}</div>
+                <div style="font-size: 0.85rem; margin-top: 4px; color: #52525b;">SECTION: 13 | ROW: 13 | SEAT: 13</div>
+                <div style="font-size: 0.8rem; margin-top: 4px; color: #a1a1aa;">STATUS: ALL-ACCESS BRACKET VOTER</div>
+                <div style="margin-top: 15px; font-size: 1.5rem; letter-spacing: 6px;">||| | |||| || | ||| |||| |</div>
+            </div>
+        """, unsafe_allow_html=True)
+
+# ==============================================================================
+# SCREEN 1: GAME HUB (CHOOSE MODE)
+# ==============================================================================
+elif st.session_state.phase == "START_HUB":
     st.session_state.current_album = None
 
     st.markdown(f"""
         <div class="era-hero">
             <div class="hero-icon">✨</div>
             <div>
-                <div class="era-badge">👑 WELCOME TO THE ERAS TOUR ARENA</div>
-                <h1 style="margin: 0; font-size: 2.3rem; color: {theme['text_color']};">The Ultimate Taylor Swift Bracket</h1>
-                <p style="margin: 4px 0 0 0; font-size: 1rem; opacity: 0.85;">Choose your tournament style below to start playing.</p>
+                <div class="era-badge">PASS HOLDER: {st.session_state.user_name.upper()}</div>
+                <h1 style="margin: 0; font-size: 2.3rem; color: {theme['text_color']};">The Eras Tour Arena</h1>
+                <p style="margin: 4px 0 0 0; font-size: 1rem; opacity: 0.85;">Welcome, {st.session_state.user_name}! Select a tournament format to begin:</p>
             </div>
         </div>
     """, unsafe_allow_html=True)
 
-    # Lyric of the Day Marquee
+    # Lyric of the Day
     lyric_quote, lyric_source = st.session_state.daily_lyric
     st.markdown(f"""
-        <div class="lyric-card">
+        <div class="era-card" style="border-left: 5px solid {theme['accent']}; padding: 14px 18px;">
             <div style="font-size: 1.05rem; font-style: italic; font-weight: 600; color: #334155;">{lyric_quote}</div>
             <div style="font-size: 0.82rem; color: #64748b; margin-top: 4px;">— {lyric_source}</div>
         </div>
     """, unsafe_allow_html=True)
 
-    st.write("### 🎮 Select Your Game Mode")
+    col1, col2, col3 = st.columns(3)
 
-    col_mode1, col_mode2, col_mode3 = st.columns(3)
-
-    with col_mode1:
+    with col1:
         st.markdown("""
-            <div class="era-card" style="height: 230px;">
+            <div class="era-card" style="height: 220px;">
                 <h3>🎪 Full Eras Tour</h3>
-                <p style="font-size: 0.9rem; color: #64748b;">Rate track-by-track through every era on a 13-point scale. Settle album ties and crown the grand champion.</p>
+                <p style="font-size: 0.9rem; color: #64748b;">Rate songs album-by-album on a 13-point scale. Settle ties in sudden death to crown your ultimate track and album.</p>
             </div>
         """, unsafe_allow_html=True)
-        if st.button("Play Full Eras Tour 🎵", use_container_width=True):
+        if st.button("Play Full Tour 🎵", use_container_width=True):
+            play_sound("click")
             st.session_state.game_mode = "FULL"
             st.session_state.phase = "SELECT_ALBUM"
             st.rerun()
 
-    with col_mode2:
+    with col2:
         st.markdown("""
-            <div class="era-card" style="height: 230px;">
+            <div class="era-card" style="height: 220px;">
                 <h3>⚡ Speed Run Bracket</h3>
                 <p style="font-size: 0.9rem; color: #64748b;">Skip all sliders! 16 randomly seeded iconic Taylor Swift anthems go straight into sudden-death voting.</p>
             </div>
         """, unsafe_allow_html=True)
         if st.button("Play Speed Run ⚡", use_container_width=True):
+            play_sound("click")
             st.session_state.game_mode = "SPEED"
             contenders = list(SPEED_RUN_POOL)
             random.shuffle(contenders)
@@ -617,14 +648,15 @@ if st.session_state.phase == "START_HUB":
             st.session_state.phase = "FINAL_BRACKET"
             st.rerun()
 
-    with col_mode3:
+    with col3:
         st.markdown("""
-            <div class="era-card" style="height: 230px;">
+            <div class="era-card" style="height: 220px;">
                 <h3>💔 Track 5 Gauntlet</h3>
-                <p style="font-size: 0.9rem; color: #64748b;">The ultimate emotional showdown. Only Taylor's legendary Track 5s battle for the #1 crown.</p>
+                <p style="font-size: 0.9rem; color: #64748b;">The ultimate heartbreak showdown. Only Taylor's legendary Track 5s battle head-to-head for the crown.</p>
             </div>
         """, unsafe_allow_html=True)
-        if st.button("Play Track 5 Gauntlet 💔", use_container_width=True):
+        if st.button("Play Track 5s 💔", use_container_width=True):
+            play_sound("click")
             st.session_state.game_mode = "TRACK5"
             t5_contenders = [song for song, _ in TRACK_5_SONGS]
             random.shuffle(t5_contenders)
@@ -635,7 +667,7 @@ if st.session_state.phase == "START_HUB":
             st.rerun()
 
 # ==============================================================================
-# SCREEN 2: ALBUM HUB (FULL MODE)
+# SCREEN 2: ALBUM HUB (FULL TOUR)
 # ==============================================================================
 elif st.session_state.phase == "SELECT_ALBUM":
     st.session_state.current_album = None
@@ -644,9 +676,9 @@ elif st.session_state.phase == "SELECT_ALBUM":
         <div class="era-hero">
             <div class="hero-icon">👑</div>
             <div>
-                <div class="era-badge">ERA SELECTION HUB</div>
-                <h1 style="margin: 0; font-size: 2.2rem; color: {theme['text_color']};">The Eras Tour Arena</h1>
-                <p style="margin: 4px 0 0 0; font-size: 1rem; opacity: 0.85;">Choose an album below to rate on the 13-point scale.</p>
+                <div class="era-badge">VIP PASS HOLDER: {st.session_state.user_name.upper()}</div>
+                <h1 style="margin: 0; font-size: 2.2rem; color: {theme['text_color']};">The Eras Hub</h1>
+                <p style="margin: 4px 0 0 0; font-size: 1rem; opacity: 0.85;">Choose an album to rate on the 13-point scale.</p>
             </div>
         </div>
     """, unsafe_allow_html=True)
@@ -670,12 +702,12 @@ elif st.session_state.phase == "SELECT_ALBUM":
                     </div>
                     <div style="font-weight: 800; font-size: 1.1rem; color:{meta['text_color']}; margin: 6px 0 2px 0;">{alb}</div>
                     <div style="font-size: 0.83rem; color:{meta['text_color']}; opacity: 0.85;">
-                        {'✅ Completed (' + str(round(st.session_state.album_ratings[alb], 2)) + '/13)' if is_done else meta['tagline']}
+                        {'✅ Score: ' + str(round(st.session_state.album_ratings[alb], 2)) + '/13' if is_done else meta['tagline']}
                     </div>
                 </div>
             """, unsafe_allow_html=True)
             if not is_done:
-                if st.button(f"Enter {alb}", key=f"btn_alb_{idx}", use_container_width=True):
+                if st.button(f"Rate {alb}", key=f"btn_alb_{idx}", use_container_width=True):
                     play_sound("click")
                     trigger_random_easter_egg()
                     st.session_state.current_album = alb
@@ -684,7 +716,7 @@ elif st.session_state.phase == "SELECT_ALBUM":
 
     if st.session_state.album_winners:
         st.divider()
-        if st.button("🏆 Start The Ultimate Showdown Early", use_container_width=True):
+        if st.button("🏆 Finish Early & Enter Grand Finale", use_container_width=True):
             play_sound("fanfare")
             st.session_state.bracket_list = list(st.session_state.album_winners)
             random.shuffle(st.session_state.bracket_list)
@@ -694,7 +726,7 @@ elif st.session_state.phase == "SELECT_ALBUM":
             st.rerun()
 
 # ==============================================================================
-# SCREEN 3: RATE SONGS IN CURRENT ERA
+# SCREEN 3: RATE ALBUM SONGS
 # ==============================================================================
 elif st.session_state.phase == "RATE_ALBUM":
     album = st.session_state.current_album
@@ -759,7 +791,7 @@ elif st.session_state.phase == "RATE_ALBUM":
         st.rerun()
 
 # ==============================================================================
-# SCREEN 4: HEAD-TO-HEAD BRACKET & AUDIO PREVIEWS
+# SCREEN 4: HEAD-TO-HEAD ARENA WITH AUDIO PREVIEWS
 # ==============================================================================
 elif st.session_state.phase in ["ALBUM_TIEBREAKER", "FINAL_BRACKET"]:
     is_final = (st.session_state.phase == "FINAL_BRACKET")
@@ -789,10 +821,13 @@ elif st.session_state.phase in ["ALBUM_TIEBREAKER", "FINAL_BRACKET"]:
         c1, c_vs, c2 = st.columns([5, 1, 5])
 
         with c1:
-            st.markdown(f"#### 👑 Defending Track\n### {current_champ}")
+            st.markdown(f"#### 👑 Defending Song\n### {current_champ}")
             champ_audio = fetch_song_preview(current_champ)
             if champ_audio:
-                st.audio(champ_audio)
+                st.audio(champ_audio, format="audio/mp3")
+            else:
+                st.caption("🎧 *Audio preview unavailable for this track*")
+
             if st.button(f"Vote '{current_champ}'", key=f"champ_{step}", use_container_width=True):
                 play_sound("click")
                 trigger_random_easter_egg()
@@ -812,7 +847,10 @@ elif st.session_state.phase in ["ALBUM_TIEBREAKER", "FINAL_BRACKET"]:
             st.markdown(f"#### ⚡ Challenger\n### {challenger}")
             chal_audio = fetch_song_preview(challenger)
             if chal_audio:
-                st.audio(chal_audio)
+                st.audio(chal_audio, format="audio/mp3")
+            else:
+                st.caption("🎧 *Audio preview unavailable for this track*")
+
             if st.button(f"Vote '{challenger}'", key=f"chal_{step}", use_container_width=True):
                 play_sound("click")
                 trigger_random_easter_egg()
@@ -830,20 +868,18 @@ elif st.session_state.phase in ["ALBUM_TIEBREAKER", "FINAL_BRACKET"]:
             st.rerun()
         else:
             st.session_state.final_winner = winner
-            # Pick 2 random surprise songs
             all_songs = songs_df["Song"].tolist()
             st.session_state.surprise_songs = random.sample([s for s in all_songs if s != winner], 2)
             st.session_state.phase = "RESULTS"
             st.rerun()
 
 # ==============================================================================
-# SCREEN 5: RESULTS, VIP PASS, RECEIPT & SURPRISE SONGS
+# SCREEN 5: RESULTS, TICKET, RECEIPT & SURPRISE SONGS
 # ==============================================================================
 elif st.session_state.phase == "RESULTS":
     st.balloons()
     play_sound("fanfare")
 
-    # Determine Era context
     if st.session_state.game_mode == "FULL" and st.session_state.album_ratings:
         best_album = max(st.session_state.album_ratings, key=st.session_state.album_ratings.get)
         best_score = st.session_state.album_ratings[best_album]
@@ -858,17 +894,17 @@ elif st.session_state.phase == "RESULTS":
             <div class="hero-icon">{best_meta['icon']}</div>
             <div>
                 <div class="era-badge">✨ OFFICIAL TOURNAMENT RESULTS</div>
-                <h1 style="margin: 0; font-size: 2.2rem; color: {theme['text_color']};">Champion Song: {st.session_state.final_winner}</h1>
+                <h1 style="margin: 0; font-size: 2.2rem; color: {theme['text_color']};">{st.session_state.user_name}'s Champion: {st.session_state.final_winner}</h1>
                 <p style="margin: 4px 0 0 0; font-size: 1rem; opacity: 0.85;">{best_meta['tagline']}</p>
             </div>
         </div>
     """, unsafe_allow_html=True)
 
-    # Friendship Bracelet
+    # Custom Friendship Bracelet
     st.write("### 📿 Your Custom Friendship Bracelet")
     st.markdown(render_friendship_bracelet(st.session_state.final_winner, best_album), unsafe_allow_html=True)
 
-    # Surprise Songs of the Night Wheel
+    # Surprise Songs of the Night
     st.markdown(f"""
         <div class="era-card" style="border-left: 6px solid {theme['accent']};">
             <h3 style="margin-top:0;">🎹 Tonight's Acoustic Surprise Songs</h3>
@@ -877,7 +913,7 @@ elif st.session_state.phase == "RESULTS":
         </div>
     """, unsafe_allow_html=True)
 
-    # VIP Concert Ticket & Eras Receipt
+    # Personalized VIP Pass / Receipt
     meta_personality = ALBUM_DATA.get(best_album.lower(), (
         "You have elite taste across every single era.",
         "Taylor Swift",
@@ -886,8 +922,8 @@ elif st.session_state.phase == "RESULTS":
 
     st.markdown(f"""
         <div class="vip-ticket">
-            <div style="font-size: 1.2rem; font-weight: bold; letter-spacing: 2px;">*** THE ERAS TOUR VIP PASS ***</div>
-            <div style="font-size: 0.85rem; color: #71717a;">DATE: 13 DECEMBER | SECTION: 13 | ROW: 13 | SEAT: 13</div>
+            <div style="font-size: 1.2rem; font-weight: bold; letter-spacing: 2px;">*** THE ERAS TOUR VIP RECEIPT ***</div>
+            <div style="font-size: 0.85rem; color: #71717a;">ATTENDEE: {st.session_state.user_name.upper()} | SEC 13, ROW 13, SEAT 13</div>
             <hr style="border: 1px dashed #d4d4d8; margin: 15px 0;">
             <div style="font-size: 1.4rem; font-weight: 800; color: {best_meta['accent']};">{st.session_state.final_winner.upper()}</div>
             <div style="font-size: 0.95rem; margin-top: 5px;">OFFICIAL #1 ERA CHAMPION</div>
@@ -903,7 +939,7 @@ elif st.session_state.phase == "RESULTS":
         </div>
     """, unsafe_allow_html=True)
 
-    # Mastermind Mode Check
+    # Mastermind Check
     all_rated = len(st.session_state.album_ratings) == len(all_albums)
     is_mastermind = (st.session_state.lucky_13_count >= 13 and best_score >= 12 and all_rated)
     if is_mastermind:
@@ -915,7 +951,7 @@ elif st.session_state.phase == "RESULTS":
             </div>
         """, unsafe_allow_html=True)
 
-    # Export Button & Reset
+    # Download CSV
     if st.session_state.all_song_ratings:
         sorted_songs = sorted(st.session_state.all_song_ratings.items(), key=lambda x: x[1], reverse=True)[:50]
         export_df = pd.DataFrame(sorted_songs, columns=["Song", "Rating"])
@@ -923,7 +959,7 @@ elif st.session_state.phase == "RESULTS":
         st.download_button(
             label="📥 Download Top 50 CSV",
             data=csv_data,
-            file_name="my_eras_tour_playlist.csv",
+            file_name=f"{st.session_state.user_name}_top_tracks.csv",
             mime="text/csv",
             use_container_width=True
         )
