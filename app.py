@@ -2,8 +2,6 @@ import streamlit as st
 import pandas as pd
 import random
 import urllib.parse
-import urllib.request
-import json
 import re
 
 # --- PAGE CONFIG ---
@@ -286,40 +284,16 @@ songs_df = load_songs()
 all_albums = list(songs_df['Album'].unique())
 
 
-# --- WORKING AUDIO PREVIEW VIA ITUNES ---
-@st.cache_data(show_spinner=False)
-def fetch_song_preview(song_title):
-    try:
-        clean_title = re.sub(r"\(.*?\)|\[.*?\]", "", song_title).strip()
-        query = urllib.parse.quote(f"Taylor Swift {clean_title}")
-        url = f"https://itunes.apple.com/search?term={query}&entity=song&limit=5"
-        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-        with urllib.request.urlopen(req, timeout=3) as resp:
-            data = json.loads(resp.read().decode())
-            results = data.get('results', [])
-            for item in results:
-                if "taylor swift" in item.get('artistName', '').lower():
-                    return item.get('previewUrl')
-            if results:
-                return results[0].get('previewUrl')
-    except Exception:
-        pass
-    return None
+# --- YOUTUBE URL GENERATOR ---
+def get_youtube_url(song_title):
+    clean_title = re.sub(r"\(.*?\)|\[.*?\]", "", song_title).strip()
+    query = urllib.parse.quote(f"Taylor Swift {clean_title} official audio")
+    return f"https://www.youtube.com/results?search_query={query}"
 
 
-# --- RELIABLE AUDIO SFX ---
-def play_sound(sound_type="click"):
-    url = "https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3" if sound_type == "click" else "https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3"
-    st.markdown(f"""
-        <audio autoplay style="display:none;">
-            <source src="{url}" type="audio/mp3">
-        </audio>
-    """, unsafe_allow_html=True)
-
-
-# --- SESSION STATE ---
+# --- INITIALIZE SESSION STATE ---
 if "phase" not in st.session_state:
-    st.session_state.phase = "GATE_NAME"  # GATE_NAME -> START_HUB -> SELECT_ALBUM / BRACKET -> RESULTS
+    st.session_state.phase = "GATE_NAME"
     st.session_state.user_name = ""
     st.session_state.game_mode = "FULL"
     st.session_state.album_ratings = {}
@@ -344,7 +318,6 @@ def get_current_theme():
 theme = get_current_theme()
 
 
-# --- BRACELET RENDERER ---
 def render_friendship_bracelet(song_title, album_name=None):
     clean_title = "".join([c for c in song_title.upper() if c.isalnum() or c == " "])[:18]
     words = clean_title.split()
@@ -519,19 +492,23 @@ st.markdown(f"""
             margin: 0 4px;
         }}
 
-        div.stButton > button {{
-            background-color: {theme['accent']};
+        div.stButton > button, a[data-testid="stLinkButton"] {{
+            background-color: {theme['accent']} !important;
             color: #ffffff !important;
-            border: none;
-            font-weight: 700;
-            border-radius: 12px;
-            padding: 0.65rem 1.4rem;
-            box-shadow: 0 4px 14px {theme['shadow']};
-            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: none !important;
+            font-weight: 700 !important;
+            border-radius: 12px !important;
+            padding: 0.65rem 1.4rem !important;
+            box-shadow: 0 4px 14px {theme['shadow']} !important;
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+            text-decoration: none !important;
+            display: flex !important;
+            justify-content: center !important;
+            align-items: center !important;
         }}
-        div.stButton > button:hover {{
-            transform: translateY(-2px) scale(1.02);
-            box-shadow: 0 8px 20px {theme['shadow']};
+        div.stButton > button:hover, a[data-testid="stLinkButton"]:hover {{
+            transform: translateY(-2px) scale(1.02) !important;
+            box-shadow: 0 8px 20px {theme['shadow']} !important;
         }}
     </style>
     <div class="wristband-bar"></div>
@@ -567,7 +544,6 @@ if st.session_state.phase == "GATE_NAME":
 
         if st.button("Generate VIP Pass ✨", use_container_width=True):
             if name_input.strip():
-                play_sound("fanfare")
                 st.session_state.user_name = name_input.strip()
                 st.session_state.phase = "START_HUB"
                 st.rerun()
@@ -606,7 +582,6 @@ elif st.session_state.phase == "START_HUB":
         </div>
     """, unsafe_allow_html=True)
 
-    # Lyric of the Day
     lyric_quote, lyric_source = st.session_state.daily_lyric
     st.markdown(f"""
         <div class="era-card" style="border-left: 5px solid {theme['accent']}; padding: 14px 18px;">
@@ -625,7 +600,6 @@ elif st.session_state.phase == "START_HUB":
             </div>
         """, unsafe_allow_html=True)
         if st.button("Play Full Tour 🎵", use_container_width=True):
-            play_sound("click")
             st.session_state.game_mode = "FULL"
             st.session_state.phase = "SELECT_ALBUM"
             st.rerun()
@@ -638,7 +612,6 @@ elif st.session_state.phase == "START_HUB":
             </div>
         """, unsafe_allow_html=True)
         if st.button("Play Speed Run ⚡", use_container_width=True):
-            play_sound("click")
             st.session_state.game_mode = "SPEED"
             contenders = list(SPEED_RUN_POOL)
             random.shuffle(contenders)
@@ -656,7 +629,6 @@ elif st.session_state.phase == "START_HUB":
             </div>
         """, unsafe_allow_html=True)
         if st.button("Play Track 5s 💔", use_container_width=True):
-            play_sound("click")
             st.session_state.game_mode = "TRACK5"
             t5_contenders = [song for song, _ in TRACK_5_SONGS]
             random.shuffle(t5_contenders)
@@ -708,7 +680,6 @@ elif st.session_state.phase == "SELECT_ALBUM":
             """, unsafe_allow_html=True)
             if not is_done:
                 if st.button(f"Rate {alb}", key=f"btn_alb_{idx}", use_container_width=True):
-                    play_sound("click")
                     trigger_random_easter_egg()
                     st.session_state.current_album = alb
                     st.session_state.phase = "RATE_ALBUM"
@@ -717,7 +688,6 @@ elif st.session_state.phase == "SELECT_ALBUM":
     if st.session_state.album_winners:
         st.divider()
         if st.button("🏆 Finish Early & Enter Grand Finale", use_container_width=True):
-            play_sound("fanfare")
             st.session_state.bracket_list = list(st.session_state.album_winners)
             random.shuffle(st.session_state.bracket_list)
             st.session_state.bracket_winner = st.session_state.bracket_list[0]
@@ -764,7 +734,6 @@ elif st.session_state.phase == "RATE_ALBUM":
     st.markdown('</div>', unsafe_allow_html=True)
 
     if submitted:
-        play_sound("click")
         awarded_13s = sum(1 for score in ratings.values() if score == 13)
         st.session_state.lucky_13_count += awarded_13s
         if awarded_13s > 0:
@@ -791,7 +760,7 @@ elif st.session_state.phase == "RATE_ALBUM":
         st.rerun()
 
 # ==============================================================================
-# SCREEN 4: HEAD-TO-HEAD ARENA WITH AUDIO PREVIEWS
+# SCREEN 4: HEAD-TO-HEAD ARENA WITH YOUTUBE LINKS
 # ==============================================================================
 elif st.session_state.phase in ["ALBUM_TIEBREAKER", "FINAL_BRACKET"]:
     is_final = (st.session_state.phase == "FINAL_BRACKET")
@@ -807,7 +776,7 @@ elif st.session_state.phase in ["ALBUM_TIEBREAKER", "FINAL_BRACKET"]:
             <div>
                 <div class="era-badge">{badge_text}</div>
                 <h1 style="margin: 0; font-size: 2.2rem; color: {theme['text_color']};">Head-to-Head Arena</h1>
-                <p style="margin: 4px 0 0 0; font-size: 1rem; opacity: 0.85;">Listen to preview clips and vote for the track that advances.</p>
+                <p style="margin: 4px 0 0 0; font-size: 1rem; opacity: 0.85;">Listen on YouTube and vote for the track that advances.</p>
             </div>
         </div>
     """, unsafe_allow_html=True)
@@ -822,21 +791,16 @@ elif st.session_state.phase in ["ALBUM_TIEBREAKER", "FINAL_BRACKET"]:
 
         with c1:
             st.markdown(f"#### 👑 Defending Song\n### {current_champ}")
-            champ_audio = fetch_song_preview(current_champ)
-            if champ_audio:
-                st.audio(champ_audio, format="audio/mp3")
-            else:
-                st.caption("🎧 *Audio preview unavailable for this track*")
-
+            st.link_button("▶️ Listen on YouTube", get_youtube_url(current_champ), use_container_width=True)
+            st.write("")
             if st.button(f"Vote '{current_champ}'", key=f"champ_{step}", use_container_width=True):
-                play_sound("click")
                 trigger_random_easter_egg()
                 st.session_state.bracket_step += 1
                 st.rerun()
 
         with c_vs:
             st.markdown(f"""
-                <div style="text-align: center; margin-top: 50px;">
+                <div style="text-align: center; margin-top: 35px;">
                     <span style="background: {theme['accent']}; color: #fff; padding: 6px 12px; border-radius: 999px; font-weight: 800; font-size: 0.9rem;">
                         VS
                     </span>
@@ -845,14 +809,9 @@ elif st.session_state.phase in ["ALBUM_TIEBREAKER", "FINAL_BRACKET"]:
 
         with c2:
             st.markdown(f"#### ⚡ Challenger\n### {challenger}")
-            chal_audio = fetch_song_preview(challenger)
-            if chal_audio:
-                st.audio(chal_audio, format="audio/mp3")
-            else:
-                st.caption("🎧 *Audio preview unavailable for this track*")
-
+            st.link_button("▶️ Listen on YouTube", get_youtube_url(challenger), use_container_width=True)
+            st.write("")
             if st.button(f"Vote '{challenger}'", key=f"chal_{step}", use_container_width=True):
-                play_sound("click")
                 trigger_random_easter_egg()
                 st.session_state.bracket_winner = challenger
                 st.session_state.bracket_step += 1
@@ -878,7 +837,6 @@ elif st.session_state.phase in ["ALBUM_TIEBREAKER", "FINAL_BRACKET"]:
 # ==============================================================================
 elif st.session_state.phase == "RESULTS":
     st.balloons()
-    play_sound("fanfare")
 
     if st.session_state.game_mode == "FULL" and st.session_state.album_ratings:
         best_album = max(st.session_state.album_ratings, key=st.session_state.album_ratings.get)
@@ -900,18 +858,33 @@ elif st.session_state.phase == "RESULTS":
         </div>
     """, unsafe_allow_html=True)
 
-    # Custom Friendship Bracelet
+    # Listen to Champion Song Link
+    st.link_button(f"▶️ Listen to {st.session_state.final_winner} on YouTube",
+                   get_youtube_url(st.session_state.final_winner), use_container_width=True)
+    st.write("")
+
+    # Friendship Bracelet
     st.write("### 📿 Your Custom Friendship Bracelet")
     st.markdown(render_friendship_bracelet(st.session_state.final_winner, best_album), unsafe_allow_html=True)
 
-    # Surprise Songs of the Night
+    # Surprise Songs of the Night with YouTube Links
     st.markdown(f"""
         <div class="era-card" style="border-left: 6px solid {theme['accent']};">
             <h3 style="margin-top:0;">🎹 Tonight's Acoustic Surprise Songs</h3>
-            <p style="margin-bottom: 5px;">Acoustic Guitar: <strong>✨ {st.session_state.surprise_songs[0]}</strong></p>
+            <p style="margin-bottom: 8px;">Acoustic Guitar: <strong>✨ {st.session_state.surprise_songs[0]}</strong></p>
             <p style="margin-bottom: 0;">Piano: <strong>✨ {st.session_state.surprise_songs[1]}</strong></p>
         </div>
     """, unsafe_allow_html=True)
+
+    col_s1, col_s2 = st.columns(2)
+    with col_s1:
+        st.link_button(f"▶️ Play '{st.session_state.surprise_songs[0]}'",
+                       get_youtube_url(st.session_state.surprise_songs[0]), use_container_width=True)
+    with col_s2:
+        st.link_button(f"▶️ Play '{st.session_state.surprise_songs[1]}'",
+                       get_youtube_url(st.session_state.surprise_songs[1]), use_container_width=True)
+
+    st.write("")
 
     # Personalized VIP Pass / Receipt
     meta_personality = ALBUM_DATA.get(best_album.lower(), (
