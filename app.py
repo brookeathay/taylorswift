@@ -2,160 +2,186 @@ import streamlit as st
 import pandas as pd
 import random
 
-# --- PAGE SETUP ---
+# --- PAGE CONFIG ---
 st.set_page_config(
-    page_title="The Eras Bracket Challenge",
+    page_title="The Eras Tour Bracket Experience",
     page_icon="✨",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-# --- LIGHT & PASTEL ERA PALETTES ---
+# --- THEMED ERAS METADATA ---
 ERA_THEMES = {
     "taylor swift": {
-        "bg_gradient": "linear-gradient(135deg, #f3f8f1 0%, #e1edd9 100%)",
+        "bg_gradient": "linear-gradient(135deg, #f2f7ef 0%, #dcecd4 100%)",
         "card_bg": "#ffffff",
-        "accent": "#4a7c59",
-        "accent_light": "#e8f5e9",
-        "text_color": "#233324",
-        "badge_bg": "#c8e6c9",
-        "badge_text": "#1b5e20",
-        "shadow": "rgba(74, 124, 89, 0.15)",
-        "badge": "🌻 DEBUT ERA"
+        "accent": "#41724d",
+        "text_color": "#1f3324",
+        "badge_bg": "#c5e1a5",
+        "badge_text": "#2e4f19",
+        "shadow": "rgba(65, 114, 77, 0.18)",
+        "badge": "🌻 DEBUT ERA",
+        "icon": "🦋",
+        "floating_emojis": ["🦋", "🎸", "🌻", "🤠", "👢", "🍃"],
+        "tagline": "Handwritten lyrics, porch swings, and teenage country dreams."
     },
     "fearless": {
-        "bg_gradient": "linear-gradient(135deg, #fffcf0 0%, #faecc7 100%)",
+        "bg_gradient": "linear-gradient(135deg, #fffdf0 0%, #fae8ad 100%)",
         "card_bg": "#ffffff",
         "accent": "#b8860b",
-        "accent_light": "#fef9e7",
-        "text_color": "#3d3000",
+        "text_color": "#422e03",
         "badge_bg": "#ffe082",
         "badge_text": "#5d4037",
-        "shadow": "rgba(184, 134, 11, 0.18)",
-        "badge": "✨ FEARLESS ERA"
+        "shadow": "rgba(184, 134, 11, 0.22)",
+        "badge": "✨ FEARLESS (TAYLOR'S VERSION)",
+        "icon": "✨",
+        "floating_emojis": ["✨", "💛", "👑", "🌧️", "🏰", "🤍"],
+        "tagline": "Dancing in the rain with golden butterflies."
     },
     "speak now": {
-        "bg_gradient": "linear-gradient(135deg, #faf5ff 0%, #edd8fc 100%)",
+        "bg_gradient": "linear-gradient(135deg, #faf3ff 0%, #ead0fc 100%)",
         "card_bg": "#ffffff",
-        "accent": "#8a2be2",
-        "accent_light": "#f5ebfc",
-        "text_color": "#33124d",
-        "badge_bg": "#e1bee7",
-        "badge_text": "#4a148c",
-        "shadow": "rgba(138, 43, 226, 0.15)",
-        "badge": "💜 SPEAK NOW ERA"
+        "accent": "#7e22ce",
+        "text_color": "#330c4e",
+        "badge_bg": "#e9d5ff",
+        "badge_text": "#581c87",
+        "shadow": "rgba(126, 34, 206, 0.2)",
+        "badge": "💜 SPEAK NOW (TAYLOR'S VERSION)",
+        "icon": "🐉",
+        "floating_emojis": ["💜", "🐉", "🎆", "🏰", "💌", "✨"],
+        "tagline": "Sparks flying, fighting dragons, and heartfelt confessions."
     },
     "red": {
-        "bg_gradient": "linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%)",
+        "bg_gradient": "linear-gradient(135deg, #fff3f3 0%, #ffd0d3 100%)",
         "card_bg": "#ffffff",
-        "accent": "#c53030",
-        "accent_light": "#ffebee",
-        "text_color": "#4a0e17",
-        "badge_bg": "#ffcdd2",
-        "badge_text": "#b71c1c",
-        "shadow": "rgba(197, 48, 48, 0.15)",
-        "badge": "🧣 RED ERA"
+        "accent": "#be123c",
+        "text_color": "#4c0519",
+        "badge_bg": "#fecdd3",
+        "badge_text": "#881337",
+        "shadow": "rgba(190, 18, 60, 0.22)",
+        "badge": "🧣 RED (TAYLOR'S VERSION)",
+        "icon": "🧣",
+        "floating_emojis": ["🧣", "🍁", "🍷", "🍂", "💔", "🕶️"],
+        "tagline": "Passionate, burning, nostalgic, and beautifully chaotic."
     },
     "1989": {
-        "bg_gradient": "linear-gradient(135deg, #f0f9ff 0%, #cbebfe 100%)",
+        "bg_gradient": "linear-gradient(135deg, #f0f9ff 0%, #bee3f8 100%)",
         "card_bg": "#ffffff",
         "accent": "#0284c7",
-        "accent_light": "#e0f2fe",
-        "text_color": "#0c4a6e",
+        "text_color": "#082f49",
         "badge_bg": "#bae6fd",
         "badge_text": "#0369a1",
-        "shadow": "rgba(2, 132, 199, 0.15)",
-        "badge": "🕶 1989 ERA"
+        "shadow": "rgba(2, 132, 199, 0.2)",
+        "badge": "🕶 1989 (TAYLOR'S VERSION)",
+        "icon": "🩵",
+        "floating_emojis": ["🩵", "🪩", "🕶️", "🏙️", "🌊", "🕊️"],
+        "tagline": "Polaroids, skyline views, and unapologetic pop perfection."
     },
     "reputation": {
-        "bg_gradient": "linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)",
+        "bg_gradient": "linear-gradient(135deg, #f8fafc 0%, #cbd5e1 100%)",
         "card_bg": "#ffffff",
-        "accent": "#1e293b",
-        "accent_light": "#f1f5f9",
-        "text_color": "#0f172a",
-        "badge_bg": "#cbd5e1",
-        "badge_text": "#0f172a",
-        "shadow": "rgba(15, 23, 42, 0.12)",
-        "badge": "🐍 REPUTATION ERA"
+        "accent": "#0f172a",
+        "text_color": "#020617",
+        "badge_bg": "#0f172a",
+        "badge_text": "#f8fafc",
+        "shadow": "rgba(15, 23, 42, 0.25)",
+        "badge": "🐍 REPUTATION ERA",
+        "icon": "🐍",
+        "floating_emojis": ["🐍", "🖤", "📰", "⛓️", "🗝️", "🍸"],
+        "tagline": "Big reputations, dark alleys, and fiercely guarded true love."
     },
     "lover": {
-        "bg_gradient": "linear-gradient(135deg, #fff0f5 0%, #fbcfe8 100%)",
+        "bg_gradient": "linear-gradient(135deg, #fff0f6 0%, #fbcfe8 100%)",
         "card_bg": "#ffffff",
         "accent": "#db2777",
-        "accent_light": "#fdf2f8",
         "text_color": "#500724",
         "badge_bg": "#fce7f3",
         "badge_text": "#9d174d",
-        "shadow": "rgba(219, 39, 119, 0.16)",
-        "badge": "💘 LOVER ERA"
+        "shadow": "rgba(219, 39, 119, 0.2)",
+        "badge": "💘 LOVER ERA",
+        "icon": "💖",
+        "floating_emojis": ["💖", "💘", "🌈", "🌸", "🏹", "🍭"],
+        "tagline": "Pastel cotton candy skies, heart sunglasses, and hopeless romance."
     },
     "folklore": {
-        "bg_gradient": "linear-gradient(135deg, #fbfbfa 0%, #e7e5e4 100%)",
-        "card_bg": "#ffffff",
-        "accent": "#57534e",
-        "accent_light": "#f5f5f4",
-        "text_color": "#1c1917",
-        "badge_bg": "#d6d3d1",
-        "badge_text": "#292524",
-        "shadow": "rgba(87, 83, 78, 0.12)",
-        "badge": "🌲 FOLKLORE ERA"
-    },
-    "evermore": {
-        "bg_gradient": "linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)",
-        "card_bg": "#ffffff",
-        "accent": "#c2410c",
-        "accent_light": "#fffaf5",
-        "text_color": "#431407",
-        "badge_bg": "#fed7aa",
-        "badge_text": "#7c2d12",
-        "shadow": "rgba(194, 65, 12, 0.15)",
-        "badge": "🍂 EVERMORE ERA"
-    },
-    "midnights": {
-        "bg_gradient": "linear-gradient(135deg, #f5f3ff 0%, #ddd6fe 100%)",
-        "card_bg": "#ffffff",
-        "accent": "#4338ca",
-        "accent_light": "#eef2ff",
-        "text_color": "#1e1b4b",
-        "badge_bg": "#c7d2fe",
-        "badge_text": "#312e81",
-        "shadow": "rgba(67, 56, 202, 0.15)",
-        "badge": "🌙 MIDNIGHTS ERA"
-    },
-    "the tortured poets department": {
         "bg_gradient": "linear-gradient(135deg, #fafaf9 0%, #e7e5e4 100%)",
         "card_bg": "#ffffff",
-        "accent": "#44403c",
-        "accent_light": "#f5f5f4",
+        "accent": "#57534e",
         "text_color": "#1c1917",
         "badge_bg": "#e7e5e4",
         "badge_text": "#292524",
-        "shadow": "rgba(68, 64, 60, 0.12)",
-        "badge": "🖋 TTPD ERA"
+        "shadow": "rgba(87, 83, 78, 0.16)",
+        "badge": "🌲 FOLKLORE ERA",
+        "icon": "🕯️",
+        "floating_emojis": ["🕯️", "🌲", "🧶", "🪞", "🩶", "📜"],
+        "tagline": "Whispering pine trees, old cardigans, and untold secrets."
+    },
+    "evermore": {
+        "bg_gradient": "linear-gradient(135deg, #fff7ed 0%, #fed7aa 100%)",
+        "card_bg": "#ffffff",
+        "accent": "#c2410c",
+        "text_color": "#431407",
+        "badge_bg": "#ffedd5",
+        "badge_text": "#7c2d12",
+        "shadow": "rgba(194, 65, 12, 0.2)",
+        "badge": "🍂 EVERMORE ERA",
+        "icon": "🌲",
+        "floating_emojis": ["🍂", "🪵", "☕", "🍷", "🤎", "❄️"],
+        "tagline": "Cabin fires, willow branches, and poetic winter mysteries."
+    },
+    "midnights": {
+        "bg_gradient": "linear-gradient(135deg, #f5f3ff 0%, #c7d2fe 100%)",
+        "card_bg": "#ffffff",
+        "accent": "#4338ca",
+        "text_color": "#1e1b4b",
+        "badge_bg": "#e0e7ff",
+        "badge_text": "#312e81",
+        "shadow": "rgba(67, 56, 202, 0.22)",
+        "badge": "🌙 MIDNIGHTS ERA",
+        "icon": "🌙",
+        "floating_emojis": ["🌙", "💎", "🕰️", "🪩", "🌌", "🕯️"],
+        "tagline": "Meet me at midnight: sleepless nights, lavender haze, and clockwork."
+    },
+    "the tortured poets department": {
+        "bg_gradient": "linear-gradient(135deg, #fbfbfa 0%, #d6d3d1 100%)",
+        "card_bg": "#ffffff",
+        "accent": "#44403c",
+        "text_color": "#1c1917",
+        "badge_bg": "#e7e5e4",
+        "badge_text": "#1c1917",
+        "shadow": "rgba(68, 64, 60, 0.18)",
+        "badge": "🖋 THE TORTURED POETS DEPARTMENT",
+        "icon": "🖋️",
+        "floating_emojis": ["🖋️", "📜", "📖", "⏳", "🤍", "☕"],
+        "tagline": "Typewriters, statues, manuscript margins, and manic melancholia."
     },
     "life of a showgirl": {
-        "bg_gradient": "linear-gradient(135deg, #fdf4ff 0%, #f5d0fe 100%)",
+        "bg_gradient": "linear-gradient(135deg, #fdf4ff 0%, #f0abfc 100%)",
         "card_bg": "#ffffff",
-        "accent": "#a21caf",
-        "accent_light": "#fdf2f8",
+        "accent": "#9333ea",
         "text_color": "#4a044e",
-        "badge_bg": "#f0abfc",
+        "badge_bg": "#fae8ff",
         "badge_text": "#701a75",
-        "shadow": "rgba(162, 28, 175, 0.16)",
-        "badge": "🎭 SHOWGIRL ERA"
+        "shadow": "rgba(147, 51, 234, 0.22)",
+        "badge": "🎭 SHOWGIRL ERA",
+        "icon": "🎭",
+        "floating_emojis": ["🎭", "💄", "🪞", "✨", "🎟️", "🥂"],
+        "tagline": "Glittering stage lights, heavy velvet curtains, and raw drama."
     }
 }
 
 DEFAULT_THEME = {
-    "bg_gradient": "linear-gradient(135deg, #fff0f5 0%, #ffe4e6 100%)",
+    "bg_gradient": "linear-gradient(135deg, #fff1f2 0%, #fecdd3 100%)",
     "card_bg": "#ffffff",
     "accent": "#e11d48",
-    "accent_light": "#fff1f2",
-    "text_color": "#2c151c",
-    "badge_bg": "#fecdd3",
-    "badge_text": "#881337",
-    "shadow": "rgba(225, 29, 72, 0.12)",
-    "badge": "👑 THE ERAS TOUR"
+    "text_color": "#3f0a1c",
+    "badge_bg": "#ffe4e6",
+    "badge_text": "#9f1239",
+    "shadow": "rgba(225, 29, 72, 0.18)",
+    "badge": "👑 THE ERAS TOUR",
+    "icon": "✨",
+    "floating_emojis": ["✨", "👑", "🪩", "💖", "🐍", "🧣"],
+    "tagline": "Journey across all 11+ musical eras in one comprehensive tournament."
 }
 
 ALBUM_DATA = {
@@ -201,20 +227,20 @@ EGGS = [
 ]
 
 
-# --- LOAD DATA ---
+# --- LOAD SONGS ---
 @st.cache_data
 def load_songs():
     try:
         return pd.read_csv("songs.csv")
     except FileNotFoundError:
-        st.error("⚠️ `songs.csv` not found. Please place it in the same directory as this file.")
+        st.error("⚠️ `songs.csv` not found in current folder.")
         st.stop()
 
 
 songs_df = load_songs()
 all_albums = list(songs_df['Album'].unique())
 
-# --- SESSION STATE INITIALIZATION ---
+# --- SESSION STATE ---
 if "phase" not in st.session_state:
     st.session_state.phase = "SELECT_ALBUM"
     st.session_state.album_ratings = {}
@@ -228,7 +254,6 @@ if "phase" not in st.session_state:
     st.session_state.final_winner = None
 
 
-# --- DYNAMIC LIGHT STYLING ---
 def get_current_theme():
     if st.session_state.current_album:
         return ERA_THEMES.get(st.session_state.current_album.lower(), DEFAULT_THEME)
@@ -237,58 +262,120 @@ def get_current_theme():
 
 theme = get_current_theme()
 
+# --- ANIMATED FLOATING SYMBOLS CSS ---
+floating_html = "".join([
+    f'<span class="floating-symbol symbol-{i}">{emoji}</span>'
+    for i, emoji in enumerate(theme["floating_emojis"])
+])
+
 st.markdown(f"""
     <style>
         .stApp {{
             background: {theme['bg_gradient']};
             color: {theme['text_color']};
-            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
-            transition: background 0.5s ease-in-out;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            overflow-x: hidden;
+            transition: background 0.7s ease;
         }}
-        h1, h2, h3, h4, p, label, .stMarkdown {{
-            color: {theme['text_color']} !important;
+
+        /* Floating Emoji Animations */
+        .ambient-container {{
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
         }}
+        .floating-symbol {{
+            position: absolute;
+            font-size: 2.4rem;
+            opacity: 0.22;
+            animation: floatUpDown 8s ease-in-out infinite alternate;
+        }}
+        .symbol-0 {{ top: 12%; left: 8%; animation-duration: 7s; }}
+        .symbol-1 {{ top: 70%; left: 12%; animation-duration: 9s; font-size: 3rem; }}
+        .symbol-2 {{ top: 25%; right: 10%; animation-duration: 8.5s; }}
+        .symbol-3 {{ top: 80%; right: 15%; animation-duration: 10s; font-size: 2.8rem; }}
+        .symbol-4 {{ top: 50%; left: 88%; animation-duration: 6.5s; }}
+        .symbol-5 {{ top: 88%; left: 45%; animation-duration: 11s; font-size: 2.2rem; }}
+
+        @keyframes floatUpDown {{
+            0% {{ transform: translateY(0px) rotate(0deg) scale(1); }}
+            50% {{ transform: translateY(-30px) rotate(12deg) scale(1.1); }}
+            100% {{ transform: translateY(20px) rotate(-10deg) scale(0.95); }}
+        }}
+
+        /* Visual Cards */
         .era-card {{
+            position: relative;
+            z-index: 1;
             background-color: {theme['card_bg']};
-            border: 1px solid rgba(0, 0, 0, 0.06);
-            box-shadow: 0 10px 25px {theme['shadow']};
-            border-radius: 18px;
-            padding: 24px;
+            border: 1.5px solid rgba(0, 0, 0, 0.05);
+            box-shadow: 0 12px 35px {theme['shadow']};
+            border-radius: 20px;
+            padding: 26px;
             margin-bottom: 24px;
         }}
+
+        .era-hero {{
+            position: relative;
+            z-index: 1;
+            background: linear-gradient(135deg, #ffffff 0%, rgba(255, 255, 255, 0.75) 100%);
+            border: 2px solid {theme['accent']};
+            box-shadow: 0 14px 40px {theme['shadow']};
+            border-radius: 22px;
+            padding: 30px;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 22px;
+        }}
+
+        .hero-icon {{
+            font-size: 4rem;
+            animation: pulseGlow 2.5s ease-in-out infinite alternate;
+        }}
+
+        @keyframes pulseGlow {{
+            0% {{ transform: scale(1); filter: drop-shadow(0 0 2px rgba(0,0,0,0.1)); }}
+            100% {{ transform: scale(1.1); filter: drop-shadow(0 0 14px {theme['accent']}); }}
+        }}
+
         .era-badge {{
             display: inline-block;
             background-color: {theme['badge_bg']};
             color: {theme['badge_text']} !important;
-            padding: 6px 14px;
+            padding: 7px 16px;
             border-radius: 999px;
-            font-weight: 700;
-            font-size: 0.8rem;
-            letter-spacing: 0.5px;
-            margin-bottom: 14px;
+            font-weight: 800;
+            font-size: 0.85rem;
+            letter-spacing: 0.8px;
+            margin-bottom: 12px;
         }}
-        /* Primary Buttons */
+
+        /* Buttons & Interactive Elements */
         div.stButton > button {{
             background-color: {theme['accent']};
             color: #ffffff !important;
             border: none;
-            font-weight: 600;
-            font-size: 0.95rem;
+            font-weight: 700;
+            font-size: 1rem;
             border-radius: 12px;
-            padding: 0.65rem 1.4rem;
-            box-shadow: 0 4px 12px {theme['shadow']};
-            transition: transform 0.15s ease, box-shadow 0.15s ease;
+            padding: 0.7rem 1.4rem;
+            box-shadow: 0 5px 15px {theme['shadow']};
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }}
         div.stButton > button:hover {{
-            transform: translateY(-2px);
-            box-shadow: 0 8px 18px {theme['shadow']};
-        }}
-        /* Sliders */
-        div[data-testid="stSlider"] label {{
-            font-weight: 600;
-            font-size: 1rem;
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 10px 22px {theme['shadow']};
         }}
     </style>
+    <div class="ambient-container">
+        {floating_html}
+    </div>
 """, unsafe_allow_html=True)
 
 
@@ -299,24 +386,29 @@ def trigger_random_easter_egg():
 
 
 # ==============================================================================
-# SCREEN 1: ERA SELECTOR
+# SCREEN 1: ERA HUB
 # ==============================================================================
 if st.session_state.phase == "SELECT_ALBUM":
     st.session_state.current_album = None
 
-    st.markdown('<div class="era-badge">👑 ERA TOURNAMENT HUB</div>', unsafe_allow_html=True)
-    st.title("The Ultimate Taylor Swift Era Bracket")
-    st.write(
-        "Rate songs across Taylor's discography on a 13-point scale, settle album ties with head-to-head showdowns, and discover your true Swiftie Era personality!")
+    st.markdown(f"""
+        <div class="era-hero">
+            <div class="hero-icon">{theme['icon']}</div>
+            <div>
+                <div class="era-badge">👑 ERA TOURNAMENT ARENA</div>
+                <h1 style="margin: 0; font-size: 2.2rem; color: {theme['text_color']};">The Eras Tour Bracket</h1>
+                <p style="margin: 6px 0 0 0; font-size: 1.05rem; opacity: 0.85;">{theme['tagline']}</p>
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
 
     remaining_albums = [a for a in all_albums if a not in st.session_state.album_ratings]
+    c_main, c_stats = st.columns([2, 1])
 
-    col_main, col_stats = st.columns([2, 1])
-
-    with col_main:
+    with c_main:
         st.markdown('<div class="era-card">', unsafe_allow_html=True)
         if not remaining_albums:
-            st.success("🎉 You've rated every album! The stage is ready for your Final Era Showdown.")
+            st.success("🎉 You have rated every single album! Ready for the Grand Finale Showdown?")
             if st.button("Enter The Ultimate Showdown 🏆", use_container_width=True):
                 st.session_state.bracket_list = list(st.session_state.album_winners)
                 random.shuffle(st.session_state.bracket_list)
@@ -325,18 +417,22 @@ if st.session_state.phase == "SELECT_ALBUM":
                 st.session_state.phase = "FINAL_BRACKET"
                 st.rerun()
         else:
-            selected = st.selectbox("Choose an Era to rate:", remaining_albums)
+            selected = st.selectbox(
+                "Select an Era to dive into:",
+                remaining_albums,
+                format_func=lambda x: f"{ERA_THEMES.get(x.lower(), DEFAULT_THEME)['icon']} {x}"
+            )
 
-            c1, c2 = st.columns([1, 1])
+            c1, c2 = st.columns(2)
             with c1:
-                if st.button(f"Rate '{selected}' 🎵", use_container_width=True):
+                if st.button(f"Rate Era 🎵", use_container_width=True):
                     trigger_random_easter_egg()
                     st.session_state.current_album = selected
                     st.session_state.phase = "RATE_ALBUM"
                     st.rerun()
             with c2:
                 if st.session_state.album_winners:
-                    if st.button("Finish Early & Go to Finals 🏆", use_container_width=True):
+                    if st.button("Jump to Finals 🏆", use_container_width=True):
                         st.session_state.bracket_list = list(st.session_state.album_winners)
                         random.shuffle(st.session_state.bracket_list)
                         st.session_state.bracket_winner = st.session_state.bracket_list[0]
@@ -345,29 +441,37 @@ if st.session_state.phase == "SELECT_ALBUM":
                         st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
 
-    with col_stats:
+    with c_stats:
         st.markdown('<div class="era-card">', unsafe_allow_html=True)
         st.subheader("Your Tour Stats")
-        st.write(f"**Eras Finished:** {len(st.session_state.album_ratings)} / {len(all_albums)}")
-        st.write(f"**Lucky 13s Awarded:** {st.session_state.lucky_13_count} 💎")
+        st.write(f"**Completed Eras:** {len(st.session_state.album_ratings)} / {len(all_albums)}")
+        st.write(f"**Lucky 13s Found:** {st.session_state.lucky_13_count} 💎")
 
         if st.session_state.album_ratings:
             st.divider()
-            st.write("**Top Rated Era So Far:**")
+            st.write("**Current Favorite Era:**")
             top_era = max(st.session_state.album_ratings, key=st.session_state.album_ratings.get)
-            st.write(f"✨ **{top_era}** ({st.session_state.album_ratings[top_era]:.2f}/13)")
+            top_meta = ERA_THEMES.get(top_era.lower(), DEFAULT_THEME)
+            st.write(f"{top_meta['icon']} **{top_era}** ({st.session_state.album_ratings[top_era]:.2f}/13)")
         st.markdown('</div>', unsafe_allow_html=True)
 
 # ==============================================================================
-# SCREEN 2: RATE SONGS IN CHOSEN ALBUM
+# SCREEN 2: RATE SONGS IN CURRENT ERA
 # ==============================================================================
 elif st.session_state.phase == "RATE_ALBUM":
     album = st.session_state.current_album
-    badge_label = ERA_THEMES.get(album.lower(), DEFAULT_THEME)["badge"]
+    meta = ERA_THEMES.get(album.lower(), DEFAULT_THEME)
 
-    st.markdown(f'<div class="era-badge">{badge_label}</div>', unsafe_allow_html=True)
-    st.title(f"Rating: {album}")
-    st.write("Score each track from **1 to 13**. Songs that earn a **13** count toward unlocking **Mastermind Mode**!")
+    st.markdown(f"""
+        <div class="era-hero">
+            <div class="hero-icon">{meta['icon']}</div>
+            <div>
+                <div class="era-badge">{meta['badge']}</div>
+                <h1 style="margin: 0; font-size: 2.2rem; color: {theme['text_color']};">{album}</h1>
+                <p style="margin: 6px 0 0 0; font-size: 1.05rem; opacity: 0.85;">{meta['tagline']}</p>
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
 
     songs_in_album = songs_df[songs_df['Album'] == album]["Song"].tolist()
 
@@ -379,14 +483,14 @@ elif st.session_state.phase == "RATE_ALBUM":
             target_col = col1 if idx % 2 == 0 else col2
             with target_col:
                 ratings[song] = st.slider(
-                    f"🎵 {song}",
+                    f"{meta['icon']} {song}",
                     min_value=1,
                     max_value=13,
                     value=10,
-                    key=f"rating_{song}"
+                    key=f"song_{song}"
                 )
         st.markdown("<br>", unsafe_allow_html=True)
-        submitted = st.form_submit_button("Lock In Ratings 🔒", use_container_width=True)
+        submitted = st.form_submit_button("Lock In Era Ratings 🔒", use_container_width=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
     if submitted:
@@ -394,7 +498,7 @@ elif st.session_state.phase == "RATE_ALBUM":
         st.session_state.lucky_13_count += awarded_13s
         if awarded_13s > 0:
             st.balloons()
-            st.toast(f"💎 Lucky 13! Taylor would approve. (+{awarded_13s} added)", icon="✨")
+            st.toast(f"💎 Lucky 13! Taylor would approve. (+{awarded_13s} logged)", icon="✨")
 
         st.session_state.all_song_ratings.update(ratings)
 
@@ -417,7 +521,7 @@ elif st.session_state.phase == "RATE_ALBUM":
         st.rerun()
 
 # ==============================================================================
-# SCREEN 3: HEAD-TO-HEAD BRACKET (TIEBREAKER & FINALS)
+# SCREEN 3: INTERACTIVE SHOWDOWN ARENA
 # ==============================================================================
 elif st.session_state.phase in ["ALBUM_TIEBREAKER", "FINAL_BRACKET"]:
     is_final = (st.session_state.phase == "FINAL_BRACKET")
@@ -425,38 +529,47 @@ elif st.session_state.phase in ["ALBUM_TIEBREAKER", "FINAL_BRACKET"]:
     current_champ = st.session_state.bracket_winner
     step = st.session_state.bracket_step
 
-    if is_final:
-        st.markdown('<div class="era-badge">🏆 THE ULTIMATE ERA SHOWDOWN</div>', unsafe_allow_html=True)
-        st.title("The Grand Finale")
-        st.write("The top songs from each of your rated eras face off head-to-head for the crown.")
-    else:
-        album = st.session_state.current_album
-        st.markdown(f'<div class="era-badge">⚡ {album.upper()} TIEBREAKER</div>', unsafe_allow_html=True)
-        st.title("Tiebreaker Matchup")
-        st.write("Multiple songs share the top score! Choose your favorite to win the album:")
+    title_badge = "🏆 ULTIMATE ERA SHOWDOWN" if is_final else f"⚡ {st.session_state.current_album.upper()} TIEBREAKER"
+    subtitle = "The #1 tracks across your rated eras go head-to-head for the crown." if is_final else "A tie occurred! Select which track advances:"
+
+    st.markdown(f"""
+        <div class="era-hero">
+            <div class="hero-icon">⚔️</div>
+            <div>
+                <div class="era-badge">{title_badge}</div>
+                <h1 style="margin: 0; font-size: 2.2rem; color: {theme['text_color']};">The Arena Showdown</h1>
+                <p style="margin: 6px 0 0 0; font-size: 1.05rem; opacity: 0.85;">{subtitle}</p>
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
 
     if step < len(contenders):
         challenger = contenders[step]
 
         st.markdown('<div class="era-card">', unsafe_allow_html=True)
-        st.caption(f"MATCHUP {step} OF {len(contenders) - 1}")
+        st.caption(f"MATCHUP ROUND {step} OF {len(contenders) - 1}")
 
         c1, c_vs, c2 = st.columns([5, 1, 5])
 
         with c1:
             st.markdown(f"#### 👑 Frontrunner\n### {current_champ}")
-            if st.button(f"Vote for '{current_champ}'", key=f"champ_{step}", use_container_width=True):
+            if st.button(f"Vote '{current_champ}'", key=f"champ_{step}", use_container_width=True):
                 trigger_random_easter_egg()
                 st.session_state.bracket_step += 1
                 st.rerun()
 
         with c_vs:
-            st.markdown("<h2 style='text-align: center; margin-top: 30px; color: #a1a1aa;'>VS</h2>",
-                        unsafe_allow_html=True)
+            st.markdown(f"""
+                <div style="text-align: center; margin-top: 30px;">
+                    <span style="background: {theme['accent']}; color: #fff; padding: 6px 12px; border-radius: 999px; font-weight: 800; font-size: 0.9rem;">
+                        VS
+                    </span>
+                </div>
+            """, unsafe_allow_html=True)
 
         with c2:
             st.markdown(f"#### ⚡ Challenger\n### {challenger}")
-            if st.button(f"Vote for '{challenger}'", key=f"chal_{step}", use_container_width=True):
+            if st.button(f"Vote '{challenger}'", key=f"chal_{step}", use_container_width=True):
                 trigger_random_easter_egg()
                 st.session_state.bracket_winner = challenger
                 st.session_state.bracket_step += 1
@@ -468,7 +581,7 @@ elif st.session_state.phase in ["ALBUM_TIEBREAKER", "FINAL_BRACKET"]:
         if not is_final:
             st.session_state.album_winners.append(winner)
             st.session_state.phase = "SELECT_ALBUM"
-            st.toast(f"Album winner: {winner}! 👑", icon="✨")
+            st.toast(f"Winner declared: {winner}! 👑", icon="✨")
             st.rerun()
         else:
             st.session_state.final_winner = winner
@@ -480,21 +593,30 @@ elif st.session_state.phase in ["ALBUM_TIEBREAKER", "FINAL_BRACKET"]:
 # ==============================================================================
 elif st.session_state.phase == "RESULTS":
     st.balloons()
-    st.markdown('<div class="era-badge">✨ YOUR ERA HAS BEEN CHOSEN</div>', unsafe_allow_html=True)
-    st.title("Your Official Era Results")
-
     best_album = max(st.session_state.album_ratings, key=st.session_state.album_ratings.get)
     best_score = st.session_state.album_ratings[best_album]
+    best_meta = ERA_THEMES.get(best_album.lower(), DEFAULT_THEME)
+
+    st.markdown(f"""
+        <div class="era-hero">
+            <div class="hero-icon">{best_meta['icon']}</div>
+            <div>
+                <div class="era-badge">✨ YOUR ERA HAS BEEN CHOSEN</div>
+                <h1 style="margin: 0; font-size: 2.2rem; color: {theme['text_color']};">The Crown Goes To {best_album}</h1>
+                <p style="margin: 6px 0 0 0; font-size: 1.05rem; opacity: 0.85;">{best_meta['tagline']}</p>
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
+
     meta = ALBUM_DATA.get(best_album.lower(), (
-        "You have pristine taste across every single album.",
+        "You have elite taste across every single era.",
         "Taylor Swift",
         "The Visionary"
     ))
 
-    # Bright Results Card
     st.markdown(f"""
         <div class="era-card">
-            <h1 style="color: {theme['accent']} !important; margin-bottom: 5px;">👑 #1 Song: {st.session_state.final_winner}</h1>
+            <h1 style="color: {best_meta['accent']} !important; margin-bottom: 5px;">👑 #1 Overall Song: {st.session_state.final_winner}</h1>
             <h3 style="margin-top: 0;">💖 Favorite Era: {best_album} (Avg Score: {best_score:.2f}/13)</h3>
             <p style="font-size: 1.15rem; font-style: italic; margin-top: 15px; line-height: 1.6;">"{meta[0]}"</p>
             <hr style="border: none; border-top: 1px solid #f0f0f0; margin: 20px 0;">
@@ -503,21 +625,20 @@ elif st.session_state.phase == "RESULTS":
         </div>
     """, unsafe_allow_html=True)
 
-    # Mastermind Mode Check
+    # Mastermind Mode
     all_rated = len(st.session_state.album_ratings) == len(all_albums)
     is_mastermind = (st.session_state.lucky_13_count >= 13 and best_score >= 12 and all_rated)
 
     if is_mastermind:
         st.markdown("""
-            <div style="background-color: #ecfdf5; border: 2px solid #10b981; border-radius: 16px; padding: 22px; margin-bottom: 25px;">
-                <h2 style="color: #065f46 !important; margin-top: 0;">🧠 MASTERMIND MODE ACTIVATED 🧠</h2>
-                <p style="color: #047857 !important; font-size: 1.05rem;">You didn’t just rate songs... You calculated outcomes. You noticed patterns. You played strategically.</p>
-                <p style="color: #065f46 !important;"><strong>👑 Swiftie Rank:</strong> The Architect | <strong>💎 Rarity:</strong> Legendary | <strong>🧠 Era Energy:</strong> Mastermind</p>
-                <p style="color: #047857 !important; font-style: italic; margin-bottom: 0;">You were never guessing. You were always in control.</p>
+            <div style="background-color: #f0fdf4; border: 2px solid #16a34a; border-radius: 18px; padding: 24px; margin-bottom: 25px;">
+                <h2 style="color: #15803d !important; margin-top: 0;">🧠 MASTERMIND MODE ACTIVATED 🧠</h2>
+                <p style="color: #166534 !important; font-size: 1.05rem;">You didn’t just rate songs... You calculated outcomes. You noticed patterns. You played strategically.</p>
+                <p style="color: #15803d !important;"><strong>👑 Swiftie Rank:</strong> The Architect | <strong>💎 Rarity:</strong> Legendary | <strong>🧠 Era Energy:</strong> Mastermind</p>
+                <p style="color: #166534 !important; font-style: italic; margin-bottom: 0;">You were never guessing. You were always in control.</p>
             </div>
         """, unsafe_allow_html=True)
 
-    # Top Songs Table & Playlist Export
     st.subheader("Your Ranked Tracklist")
     sorted_songs = sorted(st.session_state.all_song_ratings.items(), key=lambda x: x[1], reverse=True)[:50]
     export_df = pd.DataFrame(sorted_songs, columns=["Song", "Rating"])
